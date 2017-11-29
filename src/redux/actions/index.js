@@ -78,9 +78,16 @@ export function setEditorState(editorState) {
   return { type: SET_EDITOR_STATE, editorState };
 }
 
-function updateNote(note) {
+const updateNote = note => (dispatch, getState) => {
+  // Update the selected note if we're updating the currently selected note
+  if (
+    getState().notes.selectedNote &&
+    getState().notes.selectedNote.uuid === note.uuid
+  ) {
+    dispatch(selectNote(note));
+  }
   return { type: UPDATE_NOTE, note };
-}
+};
 
 export function loadNoteContent(note) {
   return dispatch => {

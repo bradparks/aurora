@@ -5,7 +5,13 @@ import styled from "styled-components";
 import PropTypes from "prop-types";
 import { Card, Container } from "../ui";
 import { Editor } from "../editor";
-import { deleteNoteAndChangeSelection } from "../../redux/actions";
+import {
+  deleteNoteAndChangeSelection,
+  updateAndSaveNote
+} from "../../redux/actions";
+import TagContainer from "./TagContainer";
+import TagModel from "./Tag";
+import _ from "lodash";
 
 const DeleteButton = styled.button`
   float: right;
@@ -16,25 +22,64 @@ const BumpedDownContainer = Container.extend`
   padding: 0;
 `;
 
+const NoteViewContainer = Card.extend`
+  padding: 0;
+`;
+
+const TopViewContainer = styled.div`
+  padding: ${props => props.theme.spacing.padding};
+`;
+
 class NoteView extends React.Component {
   constructor(props) {
     super(props);
+    this.state = {
+      tagInputValue: ""
+    };
   }
 
   onDelete = () => {
     if (this.props.note === null) {
       return;
     }
-    this.props.dispatch(deleteNoteAndChangeSelection(this.props.note));
+    this.props.delete(this.props.note);
+    this.setState({ tagInputValue: "" });
+  };
+
+  _getTags = () => {
+    if (!this.props.note) {
+      return [];
+    }
+
+    return this.props.note.tags;
+  };
+
+  onTagInputChange = event => {
+    this.setState({ tagInputValue: event.target.value });
+  };
+
+  onTagSubmit = () => {
+    this.props.note.addTag(new TagModel(this.state.tagInputValue));
+    updateAndSaveNote(this.props.note);
   };
 
   render() {
+    const tags = this._getTags();
+
     return (
       <BumpedDownContainer>
-        <Card>
-          <DeleteButton onClick={this.onDelete}>Delete</DeleteButton>
-          <Editor {...this.props} />
-        </Card>
+        <NoteViewContainer>
+          <TopViewContainer>
+            <DeleteButton onClick={this.onDelete}>Delete</DeleteButton>
+            <Editor {...this.props} />
+          </TopViewContainer>
+          <TagContainer
+            tags={tags}
+            tagInputValue={this.state.tagInputValue}
+            onChange={this.onTagInputChange}
+            onEnterPress={this.onTagSubmit}
+          />
+        </NoteViewContainer>
       </BumpedDownContainer>
     );
   }
@@ -44,4 +89,11 @@ NoteView.propTypes = {
   note: PropTypes.object
 };
 
-export default connect()(mutate(NoteView, "NoteView"));
+const mapDispatchToProps = dispatch => {
+  return {
+    updateAndSaveNote: note => dispatch(updateAndSaveNote(note)),
+    delete: note => dispatch(deleteNoteAndChangeSelection(note))
+  };
+};
+
+export default connect(null, mapDispatchToProps)(mutate(NoteView, "NoteView"));
